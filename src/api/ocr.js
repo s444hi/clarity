@@ -25,4 +25,31 @@ async function attemptOCR(base64, timeoutMs) {
   } catch (e) {
     throw e;
   }
+
+  /**
+ * Extract text from a base64-encoded JPEG image using OCR.space.
+ * Retries once on timeout before giving up.
+ * @param {string} base64  — raw base64 string (no data: prefix needed)
+ * @returns {Promise<string>} the extracted text
+ */
+
+  export async function extractTextFromImage(base64) {
+    try {
+      return await attemptOCR(base64, 30000);
+    } catch (e) {
+      if (e.message === 'timeout') {
+        try { // retry again with more time if the first time didn't work
+          return await attemptOCR(base64, 45000);
+        } catch (e2) {
+          if (e2.message === 'timeout') {
+            throw new Error('OCR is taking too long. The free key may be overloaded — try again in a moment.');
+          }
+          throw e2;
+        }
+      }
+      throw e;
+    }
+  }
+
+
 }
