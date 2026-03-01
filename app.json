@@ -1,0 +1,43 @@
+{
+    "expo": {
+      "name": "Clarity",
+      "slug": "clarity",
+      "version": "1.0.0",
+      "orientation": "portrait",
+      "icon": "./assets/icon.png",
+      "userInterfaceStyle": "light",
+      "splash": {
+        "image": "./assets/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#FAF8F3"
+      },
+      "ios": {
+        "supportsTablet": false,
+        "bundleIdentifier": "com.clarity.app"
+      },
+      "android": {
+        "package": "com.clarity.app",
+        "adaptiveIcon": {
+          "backgroundColor": "#FAF8F3"
+        }
+      },
+      "web": {
+        "favicon": "./assets/favicon.png"
+      },
+      "plugins": [
+        [
+          "expo-camera",
+          {
+            "cameraPermission": "Clarity needs camera access to scan text."
+          }
+        ],
+        [
+          "expo-image-picker",
+          {
+            "photosPermission": "Clarity needs photo library access to import images."
+          }
+        ]
+      ]
+    }
+  }
+  
