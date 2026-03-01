@@ -1,0 +1,88 @@
+// Gemini text simplification — uses @google/generative-ai SDK.
+//
+// Strategy:
+//   1. Try gemini-2.5-flash (the only model with free quota on this key).
+//   2. If Gemini is unavailable / quota hit, fall back to client-side
+//      sentence splitting so the feature ALWAYS works.
+
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+
+// ── Client-side fallback ───────────────────────────────────────────────────
+// Splits text into short, readable sentences without any network call.
+function localSimplify(text) {
+  // 1. Normalise line breaks / multiple spaces
+  const cleaned = text.replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
+
+  // 2. Split on sentence-ending punctuation
+  const rawSentences = cleaned
+    .replace(/([.!?])\s+/g, '$1\n')
+    .split('\n')
+    .map(s => s.trim())
+    .filter(s => s.length > 2);
+
+  // 3. Break long sentences at conjunctions or commas
+  const result = [];
+  for (const sentence of rawSentences) {
+    const words = sentence.split(' ');
+    if (words.length <= 14) {
+      result.push(sentence);
+      continue;
+    }
+    // Try splitting at ", and/or/but/so/because/when/while/if"
+    const parts = sentence.split(
+      /,\s*(?:and|or|but|so|because|when|while|if|after|before|then)\s*/i
+    );
+    if (parts.length > 1) {
+      parts.forEach(p => { if (p.trim().length > 2) result.push(p.trim()); });
+    } else {
+      // Just split at commas
+      const commaParts = sentence.split(/,\s+/);
+      if (commaParts.length > 1) {
+        commaParts.forEach(p => { if (p.trim().length > 2) result.push(p.trim()); });
+      } else {
+        result.push(sentence);
+      }
+    }
+  }
+  return result.filter(s => s.length > 0);
+}
+
+// ── Main export ───────────────────────────────────────────────────────────
+/**
+ * Simplify text for dyslexic readers.
+ * Returns an array of clean strings (no bullet characters).
+ * Never throws — falls back to client-side simplification if Gemini fails.
+ */
+export async function simplifyText(text) {
+  // ── Try Gemini 2.5 Flash (only model with free quota on this key) ────────
+  try {
+    const genAI = new GoogleGenerativeAI(API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const prompt = `Simplify this for a dyslexic reader.
+Rules:
+1. Break text into very short, simple sentences.
+2. Return ONLY the sentences, one per line.
+3. Do NOT use any asterisks, bolding, dashes, or markdown symbols.
+4. Use plain language a 10-year-old would understand.
+
+Text to simplify: ${text}`;
+
+    const result = await model.generateContent(prompt);
+    const raw = result.response.text();
+    const lines = raw
+      .split('\n')
+      .map(line => line.replace(/^[\s\d.)*\-–•*]+/, '').replace(/[*•]/g, '').trim())
+      .filter(line => line.length > 0);
+
+    if (lines.length > 0) return lines;
+    // Empty response — fall through to local
+  } catch (_) {
+    // Quota exceeded, 404, network error — silently fall through
+  }
+
+  // ── Client-side fallback — always available, no quota ───────────────────
+  return localSimplify(text);
+}
