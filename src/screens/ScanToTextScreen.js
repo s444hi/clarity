@@ -1,4 +1,4 @@
-javascript import React, { useState, useRef, useCallback } from 'react';
+javascriptimport React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
