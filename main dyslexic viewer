@@ -1,0 +1,101 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '../api/supabase';
+import { Theme } from '../constants/Theme';
+
+export default function DashboardScreen({ navigation }) {
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+    
+    if (!error) setHistory(data);
+    setLoading(false);
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.topBar}>
+        <Text style={styles.headerTitle}>Home</Text>
+        <TouchableOpacity onPress={handleSignOut}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content}>
+      
+        <View style={styles.welcomeSection}>
+//need to add more styles in eventually to  include opendyslexic font 
+          <Text style={styles.welcomeText}>Welcome Back</Text>
+          <Text style={styles.subText}>Select an option below to get started.</Text>
+//button for user to choose between clarity and simplify 
+        </View>
+
+        {/* Primary Action Button - Now just one big list item */}
+//main button for clarify step 
+        <TouchableOpacity 
+          style={styles.mainActionBtn}
+          onPress={() => navigation.navigate('ScanToText')}
+        >
+          <Text style={styles.btnText}>+ Start New Scan</Text>
+        </TouchableOpacity>
+                    ) : (
+                          <Text style={styles.itemTitle}>{item.title || "Untitled"}</Text>
+                <Text style={styles.itemDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#FFF' },
+//use already decided color palette for the layout 
+  topBar: { 
+    height: 60, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE'
+  },
+  headerTitle: { fontSize: 18, fontWeight: 'bold' },
+  logoutText: { color: 'red', fontSize: 14 },
+  
+  content: { padding: 20 },
+  
+  welcomeSection: { marginBottom: 30 },
+  welcomeText: { fontSize: 24, fontWeight: 'bold' },
+  subText: { color: '#666', marginTop: 5 },
+
+  btnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+
+  sectionLabel: { fontSize: 14, fontWeight: '600', color: '#888', marginBottom: 15, textTransform: 'uppercase' },
+  simpleItem: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0'
+  },
+  itemTitle: { fontSize: 16, color: '#333' },
+  itemDate: { fontSize: 12, color: '#AAA', marginTop: 4 },
+  noneText: { textAlign: 'center', marginTop: 20, color: '#CCC' }
+});
+
