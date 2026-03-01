@@ -1,0 +1,144 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  FlatList,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '../api/supabase';
+import { Theme } from '../constants/Theme';
+
+export default function DashboardScreen({ navigation }) {
+  const [userEmail, setUserEmail] = useState('');
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUserAndHistory();
+  }, []);
+
+  async function fetchUserAndHistory() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setUserEmail(user.email ?? '');
+      const { data, error } = await supabase
+        .from('history')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (!error) setHistory(data);
+    }
+    setLoading(false);
+  }
+
+  async function deleteHistoryItem(id) {
+    const { error } = await supabase.from('history').delete().eq('id', id);
+    if (!error) {
+      setHistory(history.filter(item => item.id !== id));
+    } else {
+      Alert.alert('Error', 'Could not delete this item.');
+    }
+  }
+
+  async function handleSignOut() {
+    Alert.alert('Sign Out', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign Out', onPress: async () => await supabase.auth.signOut() },
+    ]);
+  }
+
+  const firstName = userEmail.split('@')[0] ?? 'there';
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.greeting}>Hello, {firstName} 👋</Text>
+              <Text style={styles.subtitle}>Your Reading History</Text>
+            </View>
+            <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
+              <Text style={styles.signOutText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Quick Actions */}
+          <Text style={styles.sectionLabel}>New Conversation</Text>
+          <View style={styles.featureRow}>
+            <TouchableOpacity 
+              style={[styles.miniCard, {backgroundColor: Theme.colors.white}]}
+              onPress={() => navigation.navigate('ScanToText')}
+            >
+              <Text style={styles.cardIconText}>✦</Text>
+              <Text style={styles.miniCardTitle}>Clarify</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.miniCard, {backgroundColor: Theme.colors.accentBlue}]}
+              onPress={() => navigation.navigate('ScanToSpeech')}
+            >
+              <Text style={styles.cardIconText}>◎</Text>
+              <Text style={[styles.miniCardTitle, {color: '#fff'}]}>Listen</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* History List */}
+          <Text style={styles.sectionLabel}>Recent Activity</Text>
+          {history.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No history yet. Start a new scan!</Text>
+            </View>
+          ) : (
+            history.map((item) => (
+              <View key={item.id} style={styles.historyCard}>
+                <TouchableOpacity 
+                  style={styles.historyContent}
+                  onPress={() => navigation.navigate('ScanToText', { savedItem: item })}
+                >
+                  <Text style={styles.historyTitle} numberOfLines={1}>{item.title || "Untitiled Scan"}</Text>
+                  <Text style={styles.historyDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={() => deleteHistoryItem(item.id)}
+                  style={styles.deleteBtn}
+                >
+                  <Text style={styles.deleteText}>🗑️</Text>
+                </TouchableOpacity>
+              </View>
+            ))
+          )}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  // ... Keep your existing styles and add these:
+  featureRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 },
+  miniCard: { width: '48%', padding: 20, borderRadius: 15, alignItems: 'center', borderWidth: 1, borderColor: '#eee' },
+  miniCardTitle: { fontWeight: '700', marginTop: 8 },
+  historyCard: { 
+    flexDirection: 'row', 
+    backgroundColor: '#fff', 
+    borderRadius: 12, 
+    padding: 15, 
+    marginBottom: 10, 
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Theme.colors.border
+  },
+  historyContent: { flex: 1 },
+  historyTitle: { fontSize: 16, fontWeight: '600', color: Theme.colors.text },
+  historyDate: { fontSize: 12, color: Theme.colors.textSecondary, marginTop: 4 },
+  deleteBtn: { padding: 10 },
+  deleteText: { fontSize: 18 },
+  emptyState: { padding: 40, alignItems: 'center' },
+  emptyText: { color: Theme.colors.textSecondary, fontSize: 15 }
+});
